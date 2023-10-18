@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.13;
 
-import "../lib/openzeppelin-contracts/contracts/token/ERC1155/ERC1155.sol";
+import "../lib/openzeppelin-contracts.git/contracts/token/ERC1155/ERC1155.sol";
 
 contract MediSync1155 is ERC1155 {   
     address owner;
@@ -20,7 +20,7 @@ contract MediSync1155 is ERC1155 {
     //Function to give organization ability to revoke certificate if need arises
     function Burn(address from, uint id, uint amount) external {
        //caller checks and gating option goes in here
-        require(to != address(0), 'non-zero');
+        require(from != address(0), 'non-zero');
         _burn(from, id, amount);
     }
     
