@@ -8,6 +8,10 @@ contract Patient_Record {
     mapping(address => bytes) private patientBioDetails;
     mapping(address => mapping(uint => bytes)) private patientRecordBySessionId;
     mapping(address => mapping(uint => bytes[])) private patientMedicalHistory;
+    mapping(address => bool) public isRegistered;
+    mapping(bytes => bool) public dataAccessKey;
+    bytes[] patientsBioDatabase;
+    mapping(bytes => bool) private dataBaseKey;
 
     constructor(address _factoryContract) {
         isAdmin[msg.sender] = true;
@@ -29,10 +33,24 @@ contract Patient_Record {
         _;
     }
 
+    function setDataBaseKey(
+        bytes memory _dataBaseKey
+    ) public onlyFactoryContract {
+        dataBaseKey[_dataBaseKey] = true;
+    }
+
     function registerHospital(
-        address _hospitalAddress
+        address _hospitalAddress,
+        bytes memory _accessKey
     ) public onlyFactoryContract {
         isMediSyncHospital[_hospitalAddress] = true;
+        dataAccessKey[_accessKey] = true;
+    }
+
+    function confirmBioRecord(
+        address _patientAddress
+    ) public view returns (bool) {
+        return (isRegistered[_patientAddress]);
     }
 
     function bioEntry(
@@ -40,6 +58,8 @@ contract Patient_Record {
         address _patientAddress
     ) public onlyHospital {
         patientBioDetails[_patientAddress] = _calldata;
+        isRegistered[_patientAddress] = true;
+        patientsBioDatabase.push(_calldata);
     }
 
     function healthRecordBySessionId(
@@ -58,25 +78,32 @@ contract Patient_Record {
         patientMedicalHistory[_patientAddress][_sessionId].push(_calldata);
     }
 
+    function retrieveAllPatientsBio(
+        bytes memory _accessKey
+    ) public view returns (bytes[] memory) {
+        require(dataBaseKey[_accessKey] == true, "Unauthorized Entity");
+        return (patientsBioDatabase);
+    }
+
     function retrieveHealthRecordBySessionId(
         uint _sessionId,
-        address _patientAddress
-    ) public view returns (bytes memory, bytes memory) {
-        require(
-            isMediSyncHospital[msg.sender] == true ||
-                isAdmin[msg.sender] == true,
-            "Unauthorized Entity"
-        );
+        address _patientAddress,
+        bytes memory _accessKey
+    ) public view returns (bytes memory, bytes memory, bytes[] memory) {
+        require(dataAccessKey[_accessKey] == true, "Unauthorized Entity");
         return (
             patientBioDetails[_patientAddress],
-            patientRecordBySessionId[_patientAddress][_sessionId]
+            patientRecordBySessionId[_patientAddress][_sessionId],
+            patientMedicalHistory[_patientAddress][_sessionId]
         );
     }
 
     function retrieveMedicalHistory(
         uint _sessionId,
-        address _patientAddress
+        address _patientAddress,
+        bytes memory _accessKey
     ) public view returns (bytes memory, bytes[] memory) {
+        require(dataAccessKey[_accessKey] == true, "Unauthorized Entity");
         return (
             patientBioDetails[_patientAddress],
             patientMedicalHistory[_patientAddress][_sessionId]
