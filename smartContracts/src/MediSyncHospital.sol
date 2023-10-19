@@ -2,16 +2,31 @@
 pragma solidity ^0.8.13;
 
 interface IMediSyncRecords {
-    //Mock function signatures for MedisyncRecords
-    //saves bio entry as a mapping of address => bytes in records contract
-    function bioEntry(bytes memory _calldata, address _patient) external;
-    //returns status of whether bio data exists or not
-    function retrieveRecordStatus(address _patientAddress)view external returns(bool);
-    //saves a mapping of address => uint => bytes
-    function uploadSession(address _patient, uint sessionID, bytes memory _calldata) external;
+    function bioEntry(
+        bytes memory _calldata,
+        address _patientAddress
+    ) external;
+  
+    function healthRecordBySessionId(
+        uint _sessionId,
+        bytes memory _calldata,
+        address _patientAddress
+    ) external;
     //To do: function argument 'key' to be implemented
-    //returns the bytes of session saved in mapping and biodata saved in mapping.
-    function retrieveRecord(address _patientAddress, uint _sessionID, string memory passkey_)external returns(bytes memory bio, bytes memory session, bytes[] memory prevSessions);
+     function retrieveHealthRecordBySessionId(
+        uint _sessionId,
+        address _patientAddress
+    ) external returns(bytes memory, bytes memory); //returns bio and session bytes
+
+    function confirmBioRecord(
+        address _patientAddress
+    ) external view returns (bool);
+
+    function medicalHistoryEntry(
+        uint _sessionId,
+        bytes memory _calldata,
+        address _patientAddress
+    ) external;
 
 }
 
@@ -36,6 +51,7 @@ contract MediSyncHospital {
     // mapping (bytes => patientRecord[]) private allPatientRecords; //will not be saved here, going to records contract
     // bytes[] keyhash; //precompile hash, prequisite to view certain info. going to the records contract 
 
+    
     struct patientBio{
         address patientAddr;
         string first_name;
@@ -84,20 +100,20 @@ contract MediSyncHospital {
         address patientAddress;
         uint sessionID;
     }    
-//MAPPING IN THE SMART CONTRACT
+
     mapping (address => uint)doctorAddressToID ;
     mapping (address => doctorSessionNote[]) requestedSessionInfo;
     mapping (uint => address) doctorIDtoAddress;
     mapping (address => bool) isDoctorRegistered;
- //MAPPINGS GOING TO RECORDS CONTRACT
-    // mapping (address => patientBio) private PatientBioDetails;
-//maps address to session ID to session details as at the moment.
-    // mapping(address => mapping(uint => sessionDetails)) private patientRecord;   
-//maps address to array of sessionsDetails (a record of all sessions);
-    // mapping(address => bytes[]) closedSessions;
 
     modifier isDoctor {
         require(isDoctorRegistered[msg.sender], 'not doctor');
+        _;
+    }
+    modifier isAdmin {
+        require(msg.sender == adminstrator[0] ||
+        msg.sender == adminstrator[1] ||
+        msg.sender == adminstrator[2], 'NOT_ADMIN');
         _;
     }
     constructor(address[3] memory admins){
@@ -117,8 +133,9 @@ contract MediSyncHospital {
         string memory _email,
         uint _phoneNumber,
         string memory _country)public{
+
         //check if patient has record. else, create record
-        require(IMediSyncRecords(recordsContractAddr).retrieveRecordStatus(msg.sender), 'RECORD_EXISTS');
+        require(IMediSyncRecords(recordsContractAddr).confirmBioRecord(msg.sender), 'RECORD_EXISTS');
         patientBio memory bio = patientBio(msg.sender, _firstName, _lastName, _age, _sex, _genotype, _email, _phoneNumber, _country);
         bytes memory _calldata = abi.encode(bio);
         //makes call to record contract to save patient bio
@@ -127,6 +144,7 @@ contract MediSyncHospital {
 
 
     //patient books session with doctor
+    //todo: check if amount paid is correct
     function bookDoctorSession(uint _doctorID,
         uint _bloodPressure,
         uint _heartRate,
@@ -138,11 +156,11 @@ contract MediSyncHospital {
         string memory _ongoingMedications,
         string memory _ipfsCID
      )public payable{
-        require(IMediSyncRecords(recordsContractAddr).retrieveRecordStatus(msg.sender), 'RECORD_EXISTS');
+        require(IMediSyncRecords(recordsContractAddr).confirmBioRecord(msg.sender), 'RECORD_EXISTS');
         sessionDetails memory session = sessionDetails(
            _doctorID,
            msg.sender,
-           0,
+           block.timestamp,
            _bloodPressure,
            _heartRate,
            temprature,
@@ -158,7 +176,7 @@ contract MediSyncHospital {
         bytes memory _calldata = abi.encode(session);
         address doctors_address = doctorIDtoAddress[_doctorID];
         require(doctors_address != address(0), 'INCORRECT_DOCTOR_ID');
-        IMediSyncRecords(recordsContractAddr).uploadSession(msg.sender,sessionIDgenerator,_calldata);
+        IMediSyncRecords(recordsContractAddr).healthRecordBySessionId(sessionIDgenerator,_calldata, msg.sender);
         requestedSessionInfo[doctors_address].push(doctorSessionNote(msg.sender,sessionIDgenerator));
         sessionIDgenerator++;
         //To do: check doctor's availability before booking
@@ -169,10 +187,7 @@ contract MediSyncHospital {
     string memory _name,
     string memory _specialization,
     string memory _language,
-    uint _pricePerHour)public{
-       require(msg.sender == adminstrator[0] ||
-        msg.sender == adminstrator[1] ||
-        msg.sender == adminstrator[2], 'NOT_ADMIN'); 
+    uint _pricePerHour)public isAdmin(){     
         Doctor memory doctorDetails = Doctor(
             _name,
             _specialization,
@@ -196,10 +211,27 @@ contract MediSyncHospital {
 
     }
 
-    function handleCompletedSession()public isDoctor() {
-        //to do: close session, update diagnoses, 
-        //push to existing session array, 
-        //overwrite session details initially stored in existing mapping
+    function handleCompletedSession(address _patient,uint _sessionID, string memory _passkey, sessionStatus status_, string memory _diagnosis)public isDoctor() {
+        (, sessionDetails memory session_, ) = retrieveRecord(_patient, _sessionID);
+        require(session_.bookedDoctorID == doctorAddressToID[msg.sender], 'Not_assigned_doctor');
+        sessionDetails memory computeSession = sessionDetails(
+            session_.bookedDoctorID,
+            session_.patientAddr,
+            session_.time,
+            session_.blood_pressure,
+            session_.heart_rate,
+            session_.Temperature,
+            session_.complaint,
+            session_.PreExistingCondition,
+            session_.Allergies,
+            session_.FamilyMedHistory,
+            session_.ongoingMedications,
+            _diagnosis,
+            status_
+        )
+        bytes memory _calldata = abi.encode(computeSession);
+        IMediSyncRecords(recordsContractAddr).healthRecordBySessionId(_sessionID,_calldata, _patient);
+        IMediSyncRecords(recordsContractAddr).medicalHistoryEntry(_sessionID,_calldata, _patient);
     }
   
     //set doctors availability, only doctors
@@ -212,19 +244,30 @@ contract MediSyncHospital {
     }
 
     //add or remove admin
-    function addOrRemoveAdmin()public{
-        //to do : add or remove admin
+    function addAdmin(address _newAdmin uint index)public isAdmin(){
+        require(_newAdmin != address(0), 'Invalid address');
+        require(adminstrator[index] == address(0), 'position_occupied');
+        adminstrator[index] = _newAdmin
+    }
+    function removeAdmin (address AdminTobeRemoved uint index)public isAdmin(){
+        require(_newAdmin != address(0), 'Invalid address');
+        require(adminstrator[index] == AdminTobeRemoved, 'Invalid_Admin');
+        adminstrator[index] = address(0);
     }
 
-    function retrieveRecord(address _patientAddress, uint _sessionID, string memory passkey_) internal returns(patientBio memory, sessionDetails memory, sessionDetails[] memory prevSessions){
-       (bytes memory bio_, bytes memory session_, bytes[] memory prevSessions_) = IMediSyncRecords(recordsContractAddr).retrieveRecord(_patientAddress,_sessionID,passkey_);
-       //to do: abi.decode data
+    function retrieveRecord(address _patientAddress, uint _sessionID) internal returns(patientBio memory bioData, sessionDetails memory currentSessionDetail, sessionDetails[] memory prevSessions){
+       (bytes memory bio_, bytes memory session_, bytes[] memory sessionHistories) = IMediSyncRecords(recordsContractAddr).retrieveHealthRecordBySessionId(_sessionID,_patientAddress);
+       bioData = abi.decode(bio_);
+       currentSessionDetail = abi.decode(session_);
+       prevSessions = abi.decode(sessionHistories);
+        
     }
     function checkBookedSessions(address _doctor) public view returns(doctorSessionNote[] memory){
          return requestedSessionInfo[_doctor];
     }
     function previewMedicalData(address _patient,uint _sessionID, string memory _passkey) public returns (patientBio memory, sessionDetails memory, sessionDetails[] memory prevSessions){
-        (patientBio memory bio_, sessionDetails memory session_, sessionDetails[] memory prevSessions_) = retrieveRecord(_patient,_sessionID,_passkey);
+        (patientBio memory bio_, sessionDetails memory session_, sessionDetails[] memory prevSessions_) = retrieveRecord(_patient, _sessionID);
         return (bio_,session_,prevSessions_);
     }
+
 }
