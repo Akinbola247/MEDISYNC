@@ -15,8 +15,9 @@ interface IMediSyncRecords {
     //To do: function argument 'key' to be implemented
      function retrieveHealthRecordBySessionId(
         uint _sessionId,
-        address _patientAddress
-    ) external returns(bytes memory, bytes memory); //returns bio and session bytes
+        address _patientAddress,
+         bytes memory _accessKey
+    ) external returns(bytes memory, bytes memory,bytes[] memory); //returns bio and session bytes
 
     function confirmBioRecord(
         address _patientAddress
@@ -156,7 +157,9 @@ contract MediSyncHospital {
         string memory _ongoingMedications,
         string memory _ipfsCID
      )public payable{
+        address doctor_ = doctorIDtoAddress[_doctorID];
         require(IMediSyncRecords(recordsContractAddr).confirmBioRecord(msg.sender), 'RECORD_EXISTS');
+        //To do Check doctor's price
         sessionDetails memory session = sessionDetails(
            _doctorID,
            msg.sender,
@@ -211,8 +214,8 @@ contract MediSyncHospital {
 
     }
 
-    function handleCompletedSession(address _patient,uint _sessionID, string memory _passkey, sessionStatus status_, string memory _diagnosis)public isDoctor() {
-        (, sessionDetails memory session_, ) = retrieveRecord(_patient, _sessionID);
+    function handleCompletedSession(address _patient,uint _sessionID, bytes memory _passkey, sessionStatus status_, string memory _diagnosis)public isDoctor() {
+        (, sessionDetails memory session_, ) = retrieveRecord(_patient, _sessionID,_passkey);
         require(session_.bookedDoctorID == doctorAddressToID[msg.sender], 'Not_assigned_doctor');
         sessionDetails memory computeSession = sessionDetails(
             session_.bookedDoctorID,
@@ -226,9 +229,10 @@ contract MediSyncHospital {
             session_.Allergies,
             session_.FamilyMedHistory,
             session_.ongoingMedications,
+            session_.CID,
             _diagnosis,
             status_
-        )
+        );
         bytes memory _calldata = abi.encode(computeSession);
         IMediSyncRecords(recordsContractAddr).healthRecordBySessionId(_sessionID,_calldata, _patient);
         IMediSyncRecords(recordsContractAddr).medicalHistoryEntry(_sessionID,_calldata, _patient);
@@ -244,29 +248,34 @@ contract MediSyncHospital {
     }
 
     //add or remove admin
-    function addAdmin(address _newAdmin uint index)public isAdmin(){
+    function addAdmin(address _newAdmin, uint index)public isAdmin(){
         require(_newAdmin != address(0), 'Invalid address');
         require(adminstrator[index] == address(0), 'position_occupied');
-        adminstrator[index] = _newAdmin
+        adminstrator[index] = _newAdmin;
     }
-    function removeAdmin (address AdminTobeRemoved uint index)public isAdmin(){
-        require(_newAdmin != address(0), 'Invalid address');
+
+    function removeAdmin (address AdminTobeRemoved, uint index)public isAdmin(){
+        require(AdminTobeRemoved != address(0), 'Invalid address');
         require(adminstrator[index] == AdminTobeRemoved, 'Invalid_Admin');
         adminstrator[index] = address(0);
     }
 
-    function retrieveRecord(address _patientAddress, uint _sessionID) internal returns(patientBio memory bioData, sessionDetails memory currentSessionDetail, sessionDetails[] memory prevSessions){
-       (bytes memory bio_, bytes memory session_, bytes[] memory sessionHistories) = IMediSyncRecords(recordsContractAddr).retrieveHealthRecordBySessionId(_sessionID,_patientAddress);
-       bioData = abi.decode(bio_);
-       currentSessionDetail = abi.decode(session_);
-       prevSessions = abi.decode(sessionHistories);
-        
+    function retrieveRecord(address _patientAddress, uint _sessionID, bytes memory _key) internal returns(patientBio memory bioData, sessionDetails memory currentSessionDetail, sessionDetails[] memory prevSessions){
+       (bytes memory bio_, bytes memory session_, bytes[] memory sessionHistories) = IMediSyncRecords(recordsContractAddr).retrieveHealthRecordBySessionId(_sessionID,_patientAddress,_key);
+       bioData = abi.decode(bio_,(patientBio));
+       currentSessionDetail = abi.decode(session_,(sessionDetails));
+          if (sessionHistories.length > 0) {
+        prevSessions = new sessionDetails[](sessionHistories.length);
+        for (uint i = 0; i < sessionHistories.length; i++) {
+            prevSessions[i] = abi.decode(sessionHistories[i], (sessionDetails));
+        }
+    }
     }
     function checkBookedSessions(address _doctor) public view returns(doctorSessionNote[] memory){
          return requestedSessionInfo[_doctor];
     }
-    function previewMedicalData(address _patient,uint _sessionID, string memory _passkey) public returns (patientBio memory, sessionDetails memory, sessionDetails[] memory prevSessions){
-        (patientBio memory bio_, sessionDetails memory session_, sessionDetails[] memory prevSessions_) = retrieveRecord(_patient, _sessionID);
+    function previewMedicalData(address _patient,uint _sessionID, bytes memory _passkey) public returns (patientBio memory, sessionDetails memory, sessionDetails[] memory prevSessions){
+        (patientBio memory bio_, sessionDetails memory session_, sessionDetails[] memory prevSessions_) = retrieveRecord(_patient, _sessionID, _passkey);
         return (bio_,session_,prevSessions_);
     }
 
