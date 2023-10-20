@@ -1,20 +1,29 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.13;
 
+import "./MediSyncHospital.sol";
+
 contract MediSyncFactory {
+
 
     address Admin;
     address PrescriptionFactory;
-    address PatientRecordFactory;
+    address patientRecordContract;
     address[] hospitals;
-    Hospital[] hospitalRequest;
     address[] doctors;
+    Hospital[] hospitalRequest;
     DonorRequest[] DonorRequests;
-
+    uint requestId;
     // mapping (address => address[]) public hospitalToDoctors;
     // mapping (address => address) public doctorToHospital;
     mapping (address => Doctor) public DoctorDetails;
     mapping (address => Hospital) public HospitalDetails;
+    mapping (uint => requestStatus) public requestIdToIndex;
+
+    struct requestStatus {
+        uint index;
+        bool status;
+    }
 
     struct Hospital {
         string name;
@@ -22,8 +31,10 @@ contract MediSyncFactory {
         string Country;
         bytes32 registratioNumber;
         address[] doctors;
+        address[3] admins;
         bool approved;
         uint positionInArray;
+        uint requestID;
     }
 
     struct Doctor {
@@ -34,6 +45,8 @@ contract MediSyncFactory {
         string Language;
         uint pricePerHour;
         uint positionInArray;
+        uint doctorsID;
+        bool isAvailable;
     }
 
     struct DonorRequest {
@@ -54,31 +67,42 @@ contract MediSyncFactory {
         _;
     }
 
-    constructor(address _prescriptionFactory, address _patientRecordFactory){
+    constructor(address _prescriptionFactory, address _patientRecordContract){
         Admin = msg.sender;
         PrescriptionFactory = _prescriptionFactory;
-        PatientRecordFactory = _patientRecordFactory;
+        patientRecordContract = _patientRecordContract;
     }
 
-    function ApplyToCreateHospital(string memory name, string memory Country, bytes32 registratioNumber) public {
-        verifyHospitalData(name, Country, registratioNumber);
+    function ApplyToCreateHospital(string memory name, string memory Country, bytes32 registratioNumber, address[3] memory _admins) public {
+        verifyHospitalData(name, Country, registratioNumber, _admins);
+        requestId ++;
         Hospital memory newHospital;
         newHospital.name = name;
         newHospital.Country = Country;
+        newHospital.admins = _admins;
         newHospital.registratioNumber = registratioNumber;
         newHospital.positionInArray = hospitalRequest.length - 1;
+        newHospital.requestID = requestId;
+
+        requestStatus memory newStatus;
+        newStatus.index = newHospital.positionInArray;
+        requestIdToIndex[requestId] = newStatus;
         hospitalRequest.push(newHospital);
     } 
 
     function ApproveCreateHospital(uint256 id) public onlyModerator{
-        require (hospitalRequest.length > id, "INVALID ID");
-        Hospital memory approvedHospital = hospitalRequest[id];
-        // DEPLOY NECESSARY CONTRACTS.
+        require (requestId > id, "INVALID ID");
+        require (requestIdToIndex[requestId].status == false, "HOSPITAL ALREADY APPROVED");
+        Hospital memory approvedHospital = hospitalRequest[requestIdToIndex[requestId].index];
+        address[3] memory _admins = approvedHospital.admins;
+        MediSyncHospital newHospital = new MediSyncHospital(_admins);
         // pop hospital from request array
+        initializeNewHospital(id);
 
         approvedHospital.approved = true;
         approvedHospital.positionInArray = hospitals.length - 1;
-        hospitals.push(); // push hospitals address;
+        hospitals.push(address(newHospital));
+        requestIdToIndex[requestId].status = true;
         // populate HospitalDetails Mapping
     }
 
@@ -125,9 +149,21 @@ contract MediSyncFactory {
         require(newDoctor.DocAddress != address(0), 'INVALID DOC ADDRESS');
     }
 
-    function verifyHospitalData(string memory name, string memory Country, bytes32 registratioNumber) internal pure {
+    function verifyHospitalData(string memory name, string memory Country, bytes32 registratioNumber, address[3] memory _admins) internal pure {
         require(keccak256(abi.encodePacked(name)) != keccak256(abi.encodePacked('')), 'INVALID HOSPITAL NAME');
         require(keccak256(abi.encodePacked(Country)) != keccak256(abi.encodePacked('')), 'INVALID HOSPITAL LOCATION');
         require(registratioNumber != keccak256(abi.encodePacked('')), 'INVALID HOSPITAL LOCATION');
+        require(_admins.length == 3, "Imcomplete Admins");
+        for (uint i = 0; i < _admins.length; i++) {
+                require(_admins[i] != address(0), "INVALID ADMIN ADDRESS");
+        }
+    }
+
+    function initializeNewHospital(uint id) internal {
+
+    }
+
+    function unregisterDoctor() external {
+
     }
 }
