@@ -45,7 +45,9 @@ contract MediSyncPrescription {
         factory = _factory;
     }
 
-    function prescribe(bytes32 _accessKey, address _patientAddress, string memory _prescription, string memory _recommendation) public OnlyHospital returns (Prescription memory userPrescription) {
+    functio
+
+    function prescribe(bytes32 _accessKey, address _patientAddress, string memory _prescription, string memory _recommendation) public OnlyHospital(_accessKey) returns (Prescription memory userPrescription) {
         uint256 _prescriptionId = PatientAddressToPrescriptionId[_patientAddress];
         userPrescription = PatiientToPrescriptionIdToprescription[_patientAddress][_prescriptionId];
         userPrescription.doctor = doctor;

@@ -9,10 +9,9 @@ contract Patient_Record {
     mapping(address => mapping(uint => bytes)) private patientRecordBySessionId;
     mapping(address => bytes[]) private patientMedicalHistory;
     mapping(address => bool) public isRegistered;
-    mapping(address => bytes) private hospitalAccessKey;
-    mapping(bytes => bool) public dataAccessKey;
+    mapping(address => bytes32) private hospitalAccessKey;
+    mapping(address => bytes32) private patientsAccessKey;
     bytes[] patientsBioDatabase;
-    mapping(bytes => bool) private dataBaseKey;
 
     constructor(address _factoryContract) {
         isAdmin[msg.sender] = true;
@@ -36,7 +35,7 @@ contract Patient_Record {
 
     function registerHospital(
         address _hospitalAddress,
-        bytes memory _hospitalAccessKey
+        bytes32 _hospitalAccessKey
     ) public onlyFactoryContract {
         isMediSyncHospital[_hospitalAddress] = true;
         hospitalAccessKey[_hospitalAddress] = _hospitalAccessKey;
@@ -50,11 +49,13 @@ contract Patient_Record {
 
     function bioEntry(
         bytes memory _calldata,
-        address _patientAddress
+        address _patientAddress,
+        bytes32 _accessKey
     ) public onlyHospital {
         patientBioDetails[_patientAddress] = _calldata;
         isRegistered[_patientAddress] = true;
         patientsBioDatabase.push(_calldata);
+        patientsAccessKey[_patientAddress] = _accessKey;
     }
 
     function healthRecordBySessionId(
@@ -67,23 +68,20 @@ contract Patient_Record {
     }
 
     function retrieveAllPatientsBio(
-        string memory _accessKey,
-        address _accessAddress
+        string memory _accessKey
     ) public view returns (bytes[] memory) {
-        require(
-            keccak256(abi.encodePacked(_accessKey)) ==
-                hospitalAccessKey[_accessAddress],
-            "Unauthorized Entity"
-        );
+        bytes32 _key = keccak256(abi.encodePacked(_accessKey));
+        require(_key == hospitalAccessKey[msg.sender], "Unauthorized Entity");
         return (patientsBioDatabase);
     }
 
     function retrieveHealthRecordBySessionId(
         uint _sessionId,
         address _patientAddress,
-        bytes memory _accessKey
+        string memory _accessKey
     ) public view returns (bytes memory, bytes memory, bytes[] memory) {
-        require(dataAccessKey[_accessKey] == true, "Unauthorized Entity");
+        bytes32 _key = keccak256(abi.encodePacked(_accessKey));
+        require(_key == hospitalAccessKey[msg.sender], "Unauthorized Entity");
         return (
             patientBioDetails[_patientAddress],
             patientRecordBySessionId[_patientAddress][_sessionId],
@@ -93,9 +91,13 @@ contract Patient_Record {
 
     function retrieveMedicalHistory(
         address _patientAddress,
-        bytes memory _accessKey
+        string memory _accessKey
     ) public view returns (bytes memory, bytes[] memory) {
-        require(dataAccessKey[_accessKey] == true, "Unauthorized Entity");
+        require(
+            keccak256(abi.encodePacked(_accessKey)) ==
+                patientsAccessKey[_patientAddress],
+            "Key_Invalid"
+        );
         return (
             patientBioDetails[_patientAddress],
             patientMedicalHistory[_patientAddress]
