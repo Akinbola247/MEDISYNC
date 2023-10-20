@@ -19,6 +19,12 @@ const Navbar = () => {
             <li>
                 <Link href={"/register"} >Register</Link>
             </li>
+            <li>
+                <Link href={"/profile"} >Profile</Link>
+            </li>
+            <li>
+                <Link href={"/hospitals"} >Hospitals</Link>
+            </li>
         </ul>
         <ConnectButton />
       </main>
