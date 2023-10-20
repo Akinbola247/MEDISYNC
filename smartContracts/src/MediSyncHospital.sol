@@ -1,36 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.13;
 
-interface IMediSyncRecords {
-    function bioEntry(
-        bytes memory _calldata,
-        address _patientAddress
-    ) external;
-  
-    function healthRecordBySessionId(
-        uint _sessionId,
-        bytes memory _calldata,
-        address _patientAddress
-    ) external;
-    //To do: function argument 'key' to be implemented
-     function retrieveHealthRecordBySessionId(
-        uint _sessionId,
-        address _patientAddress,
-         bytes memory _accessKey
-    ) external returns(bytes memory, bytes memory,bytes[] memory); //returns bio and session bytes
-
-    function confirmBioRecord(
-        address _patientAddress
-    ) external view returns (bool);
-
-    function medicalHistoryEntry(
-        uint _sessionId,
-        bytes memory _calldata,
-        address _patientAddress
-    ) external;
-
-}
-
+import '../src/interfaces/IMediSyncRecords.sol';
 interface IMediSyncFactory {
     //function signature needs to be refactored in MedisyncFactory;
     //mapping of address => bytes 
@@ -101,11 +72,13 @@ contract MediSyncHospital {
         address patientAddress;
         uint sessionID;
     }    
+    
 
     mapping (address => uint)doctorAddressToID ;
     mapping (address => doctorSessionNote[]) requestedSessionInfo;
     mapping (uint => address) doctorIDtoAddress;
     mapping (address => bool) isDoctorRegistered;
+    mapping (address => bytes32) hashDet;
 
     modifier isDoctor {
         require(isDoctorRegistered[msg.sender], 'not doctor');
@@ -133,14 +106,16 @@ contract MediSyncHospital {
         gtype _genotype,
         string memory _email,
         uint _phoneNumber,
-        string memory _country)public{
-
+        string memory _country,
+        string memory choose_passkey)public{
         //check if patient has record. else, create record
         require(IMediSyncRecords(recordsContractAddr).confirmBioRecord(msg.sender), 'RECORD_EXISTS');
         patientBio memory bio = patientBio(msg.sender, _firstName, _lastName, _age, _sex, _genotype, _email, _phoneNumber, _country);
         bytes memory _calldata = abi.encode(bio);
         //makes call to record contract to save patient bio
         IMediSyncRecords(recordsContractAddr).bioEntry(_calldata, msg.sender);
+        hashDet[msg.sender] = keccak256(abi.encodePacked(choose_passkey)); 
+
     }
 
 
@@ -157,7 +132,7 @@ contract MediSyncHospital {
         string memory _ongoingMedications,
         string memory _ipfsCID
      )public payable{
-        address doctor_ = doctorIDtoAddress[_doctorID];
+        // address doctor_ = doctorIDtoAddress[_doctorID];
         require(IMediSyncRecords(recordsContractAddr).confirmBioRecord(msg.sender), 'RECORD_EXISTS');
         //To do Check doctor's price
         sessionDetails memory session = sessionDetails(
@@ -211,10 +186,11 @@ contract MediSyncHospital {
 //to do: the factory contract should return position in Array before pushing to array of hospital doctors
 //      _calldata.positionInArray = ''
 //      HospitalDoctors.push(_calldata);
+//to do: assign key
 
     }
 
-    function handleCompletedSession(address _patient,uint _sessionID, bytes memory _passkey, sessionStatus status_, string memory _diagnosis)public isDoctor() {
+    function handleConsultation(address _patient,uint _sessionID, bytes memory _passkey, sessionStatus status_, string memory _diagnosis, string memory _prescription)public isDoctor() {
         (, sessionDetails memory session_, ) = retrieveRecord(_patient, _sessionID,_passkey);
         require(session_.bookedDoctorID == doctorAddressToID[msg.sender], 'Not_assigned_doctor');
         sessionDetails memory computeSession = sessionDetails(
@@ -235,7 +211,7 @@ contract MediSyncHospital {
         );
         bytes memory _calldata = abi.encode(computeSession);
         IMediSyncRecords(recordsContractAddr).healthRecordBySessionId(_sessionID,_calldata, _patient);
-        IMediSyncRecords(recordsContractAddr).medicalHistoryEntry(_sessionID,_calldata, _patient);
+        //to do: update prescription contract.
     }
   
     //set doctors availability, only doctors
@@ -279,4 +255,10 @@ contract MediSyncHospital {
         return (bio_,session_,prevSessions_);
     }
 
+    function PatientMedicalPreview(address patient, string memory _passKey) view public{
+        //check hashing
+        require(keccak256(abi.encodePacked(_passKey)) == hashDet[patient], 'Key_Invalid');
+        
+
+    }
 }
