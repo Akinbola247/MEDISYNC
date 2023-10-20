@@ -4,8 +4,7 @@ pragma solidity ^0.8.13;
 import "./MediSyncHospital.sol";
 
 contract MediSyncFactory {
-
-
+    
     address Admin;
     address PrescriptionFactory;
     address patientRecordContract;
@@ -160,10 +159,11 @@ contract MediSyncFactory {
     }
 
     function initializeNewHospital(uint id) internal {
-
+        // SHOULD REMOVETHE HOSPITAL FROM THE REQUEST ARRAY THEN ADD IT
+        // TO THE HOSPITALS ARRAY, IT SHOULD ALSO UPDATE THE INDEX OF THE HOSPITAL IN BOTH THE HOSPITAL ARRAY AND THE REQUEST ARRAY
     }
 
-    function unregisterDoctor() external {
-
+    function unregisterDoctor(uint id) external {
+        
     }
 }
