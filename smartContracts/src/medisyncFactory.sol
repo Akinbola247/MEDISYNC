@@ -4,7 +4,7 @@ pragma solidity ^0.8.13;
 import "./MediSyncHospital.sol";
 
 contract MediSyncFactory {
-    
+
     address Admin;
     address PrescriptionFactory;
     address patientRecordContract;
@@ -95,6 +95,7 @@ contract MediSyncFactory {
         Hospital memory approvedHospital = hospitalRequest[requestIdToIndex[requestId].index];
         address[3] memory _admins = approvedHospital.admins;
         MediSyncHospital newHospital = new MediSyncHospital(_admins);
+       
         // pop hospital from request array
         initializeNewHospital(id);
 
@@ -151,7 +152,7 @@ contract MediSyncFactory {
     function verifyHospitalData(string memory name, string memory Country, bytes32 registratioNumber, address[3] memory _admins) internal pure {
         require(keccak256(abi.encodePacked(name)) != keccak256(abi.encodePacked('')), 'INVALID HOSPITAL NAME');
         require(keccak256(abi.encodePacked(Country)) != keccak256(abi.encodePacked('')), 'INVALID HOSPITAL LOCATION');
-        require(registratioNumber != keccak256(abi.encodePacked('')), 'INVALID HOSPITAL LOCATION');
+        require(registratioNumber != keccak256(abi.encodePacked('')), 'INVALID HOSPITAL REGISTRATION NUMBER');
         require(_admins.length == 3, "Imcomplete Admins");
         for (uint i = 0; i < _admins.length; i++) {
                 require(_admins[i] != address(0), "INVALID ADMIN ADDRESS");
