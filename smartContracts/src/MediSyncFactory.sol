@@ -236,5 +236,9 @@ contract MediSyncFactory {
         // TO THE HOSPITALS ARRAY, IT SHOULD ALSO UPDATE THE INDEX OF THE HOSPITAL IN BOTH THE HOSPITAL ARRAY AND THE REQUEST ARRAY
     }
 
-    function unregisterDoctor(uint id) external {}
+    function unregisterDoctor(uint id) onlyModerator external {
+        address theDoctor = doctors[id];
+        Doctor memory defaultDoctor;
+        DoctorDetails[theDoctor] = defaultDoctor;
+    }
 }
