@@ -126,7 +126,6 @@ contract MediSyncFactory {
         // populate HospitalDetails Mapping
     }
 
-
     function placeDonationAdvert(
         DonorRequest memory newDonorRequest
     ) public validHospital {
