@@ -14,7 +14,6 @@ struct Hospital {
     address HospitalAddress;
     string Country;
     bytes32 registratioNumber;
-    address[] doctors;
     address[3] admins;
     bool approved;
     uint positionInArray;
@@ -56,6 +55,7 @@ contract MediSyncFactory {
     mapping(address => Doctor) public DoctorDetails;
     mapping(address => Hospital) public HospitalDetails;
     mapping(uint => requestStatus) public requestIdToIndex;
+    mapping(address => mapping(address => bool)) isDoctorAtHospital;
 
     modifier validHospital() {
         bool status = HospitalDetails[msg.sender].approved;
@@ -156,10 +156,9 @@ contract MediSyncFactory {
         doctors.push(doctorDetails.DocAddress);
         DoctorDetails[doctorDetails.DocAddress] = doctorDetails;
         doctorDetails.positionInArray = doctors.length - 1;
-        HospitalDetails[doctorDetails.Hospital].doctors.push(
-            doctorDetails.DocAddress
-        );
+        isDoctorAtHospital[msg.sender][doctorDetails.DocAddress] = true;
         doctorsIDgenerator++;
+        // Hospital2DoctorsId2Index
         return ((doctors.length - 1), returnID);
     }
 
@@ -239,5 +238,13 @@ contract MediSyncFactory {
         // TO THE HOSPITALS ARRAY, IT SHOULD ALSO UPDATE THE INDEX OF THE HOSPITAL IN BOTH THE HOSPITAL ARRAY AND THE REQUEST ARRAY
     }
 
-    function unregisterDoctor(uint id) external {}
+    function unregisterDoctor(address _doctor) validHospital external {
+        require (isDoctorAtHospital[msg.sender][_doctor] == true, "INVALID DOCTOR");
+        uint256 DocIndex = DoctorDetails[_doctor].positionInArray;
+        doctors[DocIndex] = doctors[doctors.length - 1];
+        doctors.pop();
+        DoctorDetails[doctors[DocIndex]].positionInArray = DocIndex;
+        Doctor memory defaultDoctor;
+        DoctorDetails[_doctor] = defaultDoctor;
+    }
 }
