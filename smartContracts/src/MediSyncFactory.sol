@@ -103,11 +103,11 @@ contract MediSyncFactory {
     function ApproveCreateHospital(uint256 id) public onlyModerator {
         require(requestId > id, "INVALID ID");
         require(
-            requestIdToIndex[requestId].status == false,
+            requestIdToIndex[id].status == false,
             "HOSPITAL ALREADY APPROVED"
         );
         Hospital memory approvedHospital = hospitalRequest[
-            requestIdToIndex[requestId].index
+            requestIdToIndex[id].index
         ];
         address[3] memory _admins = approvedHospital.admins;
         MediSyncHospital newHospital = new MediSyncHospital(_admins);
@@ -118,7 +118,6 @@ contract MediSyncFactory {
         approvedHospital.approved = true;
         approvedHospital.positionInArray = hospitals.length - 1;
         hospitals.push(address(newHospital));
-        requestIdToIndex[requestId].status = true;
 
         IMediSyncRecords(patientRecordContract).registerHospital(
             address(newHospital),
@@ -234,8 +233,10 @@ contract MediSyncFactory {
     }
 
     function initializeNewHospital(uint id) internal {
-        // SHOULD REMOVETHE HOSPITAL FROM THE REQUEST ARRAY THEN ADD IT
-        // TO THE HOSPITALS ARRAY, IT SHOULD ALSO UPDATE THE INDEX OF THE HOSPITAL IN BOTH THE HOSPITAL ARRAY AND THE REQUEST ARRAY
+        hospitalRequest[requestIdToIndex[id].index] = hospitalRequest[hospitalRequest.length];
+        uint newPositionReqID = hospitalRequest[requestIdToIndex[id].index].requestID;
+        requestIdToIndex[newPositionReqID].index = requestIdToIndex[id].index;
+        hospitalRequest.pop();
     }
 
     function unregisterDoctor(address _doctor) validHospital external {
@@ -246,5 +247,14 @@ contract MediSyncFactory {
         DoctorDetails[doctors[DocIndex]].positionInArray = DocIndex;
         Doctor memory defaultDoctor;
         DoctorDetails[_doctor] = defaultDoctor;
+    }
+
+    function replaceAdmins(address[] memory _newAdmin, uint[] memory index) validHospital external {
+        require (_newAdmin.length == index.length, "LENGTH MISMATCH");
+        address[3] memory newAdmins = HospitalDetails[msg.sender].admins;
+        for (uint i = 0; i < index.length; i++){
+            newAdmins[index[i]] = _newAdmin[i];
+        }
+        HospitalDetails[msg.sender].admins = newAdmins;
     }
 }
