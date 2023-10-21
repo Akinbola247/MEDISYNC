@@ -74,6 +74,7 @@ contract MediSyncFactory {
         patientRecordContract = _patientRecordContract;
     }
 
+
     function ApplyToCreateHospital(
         string memory name,
         string memory Country,
@@ -126,22 +127,6 @@ contract MediSyncFactory {
         // populate HospitalDetails Mapping
     }
 
-    function registerDoctors(
-        bytes memory _calldata
-    ) public validHospital returns (uint, uint) {
-        Doctor memory doctorDetails = abi.decode(_calldata, (Doctor));
-        doctorDetails.doctorsID = doctorsIDgenerator;
-        uint returnID = doctorsIDgenerator;
-        verifyDoctorData(doctorDetails);
-        doctors.push(doctorDetails.DocAddress);
-        DoctorDetails[doctorDetails.DocAddress] = doctorDetails;
-        doctorDetails.positionInArray = doctors.length - 1;
-        HospitalDetails[doctorDetails.Hospital].doctors.push(
-            doctorDetails.DocAddress
-        );
-        doctorsIDgenerator++;
-        return ((doctors.length - 1), returnID);
-    }
 
     function placeDonationAdvert(
         DonorRequest memory newDonorRequest
@@ -161,19 +146,30 @@ contract MediSyncFactory {
         DonorRequests.push(newDonorRequest);
     }
 
-    function viewHospitals() public view returns (address[] memory) {
-        return hospitals;
+    function registerDoctors(
+        bytes memory _calldata
+    ) public validHospital returns (uint, uint) {
+        Doctor memory doctorDetails = abi.decode(_calldata, (Doctor));
+        doctorDetails.doctorsID = doctorsIDgenerator;
+        uint returnID = doctorsIDgenerator;
+        verifyDoctorData(doctorDetails);
+        doctors.push(doctorDetails.DocAddress);
+        DoctorDetails[doctorDetails.DocAddress] = doctorDetails;
+        doctorDetails.positionInArray = doctors.length - 1;
+        HospitalDetails[doctorDetails.Hospital].doctors.push(
+            doctorDetails.DocAddress
+        );
+        doctorsIDgenerator++;
+        return ((doctors.length - 1), returnID);
     }
+
 
     function viewDoctors() public view returns (address[] memory) {
         return doctors;
     }
 
-    function getDoctorsHospital(
-        address _Doctor
-    ) public view returns (address doctorsHospital) {
-        require(_Doctor != address(0), "Invalid address zero");
-        doctorsHospital = DoctorDetails[_Doctor].Hospital;
+    function viewHospitals() public view returns (address[] memory) {
+        return hospitals;
     }
 
     function viewDonationAddverts()
@@ -184,25 +180,17 @@ contract MediSyncFactory {
         return DonorRequests;
     }
 
+    function getDoctorsHospital(
+        address _Doctor
+    ) public view returns (address doctorsHospital) {
+        require(_Doctor != address(0), "Invalid address zero");
+        doctorsHospital = DoctorDetails[_Doctor].Hospital;
+    }
+
     function viewDoctorsHospital(
         address _doctor
     ) public view returns (address) {
         return DoctorDetails[_doctor].Hospital;
-    }
-
-    function verifyDoctorData(Doctor memory newDoctor) internal pure {
-        require(
-            keccak256(abi.encodePacked(newDoctor.name)) !=
-                keccak256(abi.encodePacked("")),
-            "INVALID DOCTORS NAME"
-        );
-        require(
-            keccak256(abi.encodePacked(newDoctor.specialization)) !=
-                keccak256(abi.encodePacked("")),
-            "INVALID DOCTORS SPECIALIZATION"
-        );
-        require(newDoctor.Hospital != address(0), "INVALID HOSPITAL");
-        require(newDoctor.DocAddress != address(0), "INVALID DOC ADDRESS");
     }
 
     function verifyHospitalData(
@@ -229,6 +217,21 @@ contract MediSyncFactory {
         for (uint i = 0; i < _admins.length; i++) {
             require(_admins[i] != address(0), "INVALID ADMIN ADDRESS");
         }
+    }
+
+    function verifyDoctorData(Doctor memory newDoctor) internal pure {
+        require(
+            keccak256(abi.encodePacked(newDoctor.name)) !=
+                keccak256(abi.encodePacked("")),
+            "INVALID DOCTORS NAME"
+        );
+        require(
+            keccak256(abi.encodePacked(newDoctor.specialization)) !=
+                keccak256(abi.encodePacked("")),
+            "INVALID DOCTORS SPECIALIZATION"
+        );
+        require(newDoctor.Hospital != address(0), "INVALID HOSPITAL");
+        require(newDoctor.DocAddress != address(0), "INVALID DOC ADDRESS");
     }
 
     function initializeNewHospital(uint id) internal {
