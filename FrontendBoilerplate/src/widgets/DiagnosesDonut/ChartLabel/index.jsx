@@ -1,5 +1,5 @@
 // styling
-import styled from 'styled-components/macro';
+import styled from 'styled-components';
 import {flex, textSizes} from '@styles/vars';
 import {numFormatter} from '@utils/numbers';
 import PropTypes from 'prop-types';

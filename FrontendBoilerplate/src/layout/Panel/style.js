@@ -1,4 +1,4 @@
-import styled from 'styled-components/macro';
+import styled from 'styled-components';
 import theme from 'styled-theming';
 import {colors, dark, breakpoints, effects, flex, fonts, light, textSizes} from '@styles/vars';
 

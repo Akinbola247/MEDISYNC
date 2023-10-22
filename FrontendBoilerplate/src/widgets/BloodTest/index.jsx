@@ -1,6 +1,6 @@
 // styling
 import {light, dark, textSizes, fonts, colors, flex} from '@styles/vars';
-import styled from 'styled-components/macro';
+import styled from 'styled-components';
 
 // components
 import Widget from '@components/Widget';

@@ -1,4 +1,4 @@
-import styled from 'styled-components/macro';
+import styled from 'styled-components';
 import theme from 'styled-theming';
 import {light, dark, textSizes, colors, breakpoints, flex, fonts} from '@styles/vars';
 import {EventsCalendar} from '@widgets/EventsCompactCalendar/style';

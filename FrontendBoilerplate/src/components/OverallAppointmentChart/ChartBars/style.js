@@ -1,4 +1,4 @@
-import styled from 'styled-components/macro';
+import styled from 'styled-components';
 import theme from 'styled-theming';
 import {dark, light, flex, fonts, textSizes} from '@styles/vars';
 import mask from '@assets/bar_mask.svg';

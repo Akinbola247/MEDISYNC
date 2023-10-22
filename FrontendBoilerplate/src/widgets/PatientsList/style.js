@@ -1,4 +1,4 @@
-import styled from 'styled-components/macro';
+import styled from 'styled-components';
 import theme from 'styled-theming';
 import {dark, light, flex, colors, breakpoints} from '@styles/vars';
 import {HeaderWrapper} from '@components/Widget/style';

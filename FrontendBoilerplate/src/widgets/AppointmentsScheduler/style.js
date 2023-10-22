@@ -1,4 +1,4 @@
-import styled from 'styled-components/macro';
+import styled from 'styled-components';
 import theme from 'styled-theming';
 import {effects, dark, flex, light, breakpoints} from '@styles/vars';
 import {StyledCalendar} from '@components/AppointmentsCalendar/style';

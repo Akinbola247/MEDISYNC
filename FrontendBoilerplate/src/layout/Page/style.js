@@ -1,4 +1,4 @@
-import styled from 'styled-components/macro';
+import styled from 'styled-components';
 import {breakpoints, flex} from '@styles/vars';
 
 export const Content = styled.div`

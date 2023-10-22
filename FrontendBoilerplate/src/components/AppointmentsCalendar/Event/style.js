@@ -1,5 +1,5 @@
 import {colors, dark, flex, light, textSizes, breakpoints, fonts} from '@styles/vars';
-import styled from 'styled-components/macro';
+import styled from 'styled-components';
 import {colorTypes} from '@constants/colors';
 import theme from 'styled-theming';
 import {ModalContent} from '@components/ModalWindow';

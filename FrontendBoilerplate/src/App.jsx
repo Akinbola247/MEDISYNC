@@ -28,6 +28,43 @@ import {useDispatch} from 'react-redux';
 // actions
 import {saveToLocalStorage} from '@store/features/layout';
 
+import '@rainbow-me/rainbowkit/styles.css';
+import {
+  getDefaultWallets,
+  RainbowKitProvider,
+} from '@rainbow-me/rainbowkit';
+import { configureChains, createConfig, WagmiConfig } from 'wagmi';
+import {
+  mainnet,
+  polygon,
+  optimism,
+  arbitrum,
+  base,
+  zora,
+} from 'wagmi/chains';
+import { alchemyProvider } from 'wagmi/providers/alchemy';
+import { publicProvider } from 'wagmi/providers/public';
+
+
+const { chains, publicClient } = configureChains(
+  [mainnet, polygon, optimism, arbitrum, base, zora],
+  [
+    alchemyProvider({ apiKey: process.env.ALCHEMY_ID }),
+    publicProvider()
+  ]
+);
+const { connectors } = getDefaultWallets({
+  appName: 'My RainbowKit App',
+  projectId: 'YOUR_PROJECT_ID',
+  chains
+});
+const wagmiConfig = createConfig({
+  autoConnect: true,
+  connectors,
+  publicClient
+})
+
+
 const App = () => {
     const page = document.documentElement;
     const {isDarkMode, isContrastMode, direction} = useInterfaceContext();
@@ -53,6 +90,8 @@ const App = () => {
     }, []);
 
     return (
+        <WagmiConfig config={wagmiConfig}>
+        <RainbowKitProvider chains={chains}>
         <CacheProvider value={cacheRtl}>
             <MuiThemeProvider theme={theme}>
                 <ThemeProvider theme={{theme: isDarkMode ? 'dark' : 'light'}}>
@@ -73,6 +112,8 @@ const App = () => {
                 </ThemeProvider>
             </MuiThemeProvider>
         </CacheProvider>
+        </RainbowKitProvider>
+    </WagmiConfig>
     );
 }
 

@@ -1,4 +1,4 @@
-import styled from 'styled-components/macro';
+import styled from 'styled-components';
 import {colors, flex} from '@styles/vars';
 import {aura} from '@styles/keyframes';
 

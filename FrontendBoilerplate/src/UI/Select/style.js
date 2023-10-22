@@ -1,4 +1,4 @@
-import styled from 'styled-components/macro';
+import styled from 'styled-components';
 import theme from 'styled-theming';
 import {textSizes, light, dark, colors, fonts, breakpoints} from '@styles/vars';
 import {fadeIn} from '@styles/keyframes';

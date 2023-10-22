@@ -1,6 +1,6 @@
 // styling
 import {colors, flex, textSizes} from '@styles/vars';
-import styled from 'styled-components/macro';
+import styled from 'styled-components';
 import {darken} from 'polished';
 
 const Btn = styled.button`

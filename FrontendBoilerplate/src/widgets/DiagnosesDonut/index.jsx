@@ -1,5 +1,5 @@
 // styling
-import styled from 'styled-components/macro';
+import styled from 'styled-components';
 import {flex, light, dark} from '@styles/vars';
 import {useTheme} from 'styled-components';
 

@@ -2,7 +2,7 @@
 import logo from '@assets/logo.svg'
 
 // styling
-import styled from 'styled-components/macro';
+import styled from 'styled-components';
 import {colors, fonts, textSizes, breakpoints} from '@styles/vars';
 import theme from 'styled-theming';
 

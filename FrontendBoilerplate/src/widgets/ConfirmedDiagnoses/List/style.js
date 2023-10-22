@@ -1,4 +1,4 @@
-import styled from 'styled-components/macro';
+import styled from 'styled-components';
 import {flex, textSizes, fonts} from '@styles/vars';
 
 export const List = styled.ul`

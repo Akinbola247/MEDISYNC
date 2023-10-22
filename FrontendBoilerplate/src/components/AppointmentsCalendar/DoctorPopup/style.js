@@ -1,4 +1,4 @@
-import styled from 'styled-components/macro';
+import styled from 'styled-components';
 import {flex, breakpoints, light, colors, textSizes, fonts} from '@styles/vars'
 import theme from 'styled-theming';
 import dashed from '@assets/dashed.svg'

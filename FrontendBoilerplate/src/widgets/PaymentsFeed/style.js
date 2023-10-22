@@ -1,4 +1,4 @@
-import styled from 'styled-components/macro';
+import styled from 'styled-components';
 import {textSizes, colors} from '@styles/vars';
 
 export const Footer = styled.div`

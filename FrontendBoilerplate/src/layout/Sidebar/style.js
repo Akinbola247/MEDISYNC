@@ -1,4 +1,4 @@
-import styled from 'styled-components/macro';
+import styled from 'styled-components';
 import {colors, breakpoints, flex, textSizes, fonts} from '@styles/vars';
 
 const navItem = `

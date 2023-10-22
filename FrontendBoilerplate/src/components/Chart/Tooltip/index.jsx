@@ -1,5 +1,5 @@
 // styling
-import styled from 'styled-components/macro';
+import styled from 'styled-components';
 import {light, textSizes, fonts, flex} from '@styles/vars';
 
 export const StyledTooltip = styled.div`
